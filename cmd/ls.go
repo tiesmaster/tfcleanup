@@ -36,8 +36,12 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 		return errors.New("no TF files detected")
 	}
 
-	fmt.Println("Discovered TF files: ")
-	fmt.Println(matches)
+	if verbose {
+		fmt.Println("Discovered TF files: ")
+		for _, m := range matches {
+			fmt.Printf("\t%v\n", m)
+		}
+	}
 
 	return nil
 }

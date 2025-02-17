@@ -19,7 +19,9 @@ func Execute() {
 }
 
 var targetDir string
+var verbose bool
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&targetDir, "target-dir", "t", "", "target dir (default is current working directory)")
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Print verbose output")
 }
