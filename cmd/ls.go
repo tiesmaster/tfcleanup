@@ -69,7 +69,10 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 
 		for _, mod := range referencedModules {
 			fmt.Printf("\n%v:\n", mod)
-			vars := getModuleVariables(mod)
+			vars, err := getModuleVariables(mod)
+			if err != nil {
+				return err
+			}
 			for _, v := range vars {
 				fmt.Printf("\t%v\n", v)
 			}
@@ -111,23 +114,31 @@ func getReferencedModulesForFile(filename string) ([]string, error) {
 	return modules, nil
 }
 
-func getModuleVariables(mod string) []string {
+func getModuleVariables(mod string) ([]string, error) {
 	moduleDir := path.Join(".terraform/modules/", mod)
-	matches, _ := fs.Glob(os.DirFS(moduleDir), "*.tf")
+	matches, err := fs.Glob(os.DirFS(moduleDir), "*.tf")
+	if err != nil {
+		return nil, err
+	}
 
 	var allVariables []string
 	for _, m := range matches {
-		vars := readVariables(path.Join(moduleDir, m))
+		vars, err := readVariables(path.Join(moduleDir, m))
+		if err != nil {
+			return nil, err
+		}
 		allVariables = append(allVariables, vars...)
 	}
 
-	return allVariables
-
+	return allVariables, nil
 }
 
-func readVariables(filename string) []string {
+func readVariables(filename string) ([]string, error) {
 	input, _ := os.ReadFile(filename)
-	hclFile, _ := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
+	hclFile, diags := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
+	if diags.HasErrors() {
+		return nil, errors.New("failed to parse TF file: " + diags.Error())
+	}
 
 	hclBody := hclFile.Body()
 
@@ -138,5 +149,5 @@ func readVariables(filename string) []string {
 		}
 	}
 
-	return variables
+	return variables, nil
 }
