@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
 var lsCmd = &cobra.Command{
@@ -43,5 +45,36 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	referencedModules := getReferencedModules(matches)
+	fmt.Println("Detected modules:")
+	for _, m := range referencedModules {
+		fmt.Printf("\t%v\n", m)
+	}
+
 	return nil
+}
+
+func getReferencedModules(filenames []string) []string {
+	var modules []string
+	for _, f := range filenames {
+		modules = append(modules, getReferencedModulesForFile(f)...)
+	}
+
+	return modules
+}
+
+func getReferencedModulesForFile(filename string) []string {
+	input, _ := os.ReadFile(filename)
+	hclFile, _ := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
+
+	hclBody := hclFile.Body()
+
+	var modules []string
+	for _, bl := range hclBody.Blocks() {
+		if bl.Type() == "module" {
+			modules = append(modules, bl.Labels()[0])
+		}
+	}
+
+	return modules
 }
