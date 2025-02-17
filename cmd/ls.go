@@ -45,7 +45,11 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	referencedModules := getReferencedModules(matches)
+	referencedModules, err := getReferencedModules(matches)
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("Detected modules:")
 	for _, m := range referencedModules {
 		fmt.Printf("\t%v\n", m)
@@ -54,18 +58,25 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func getReferencedModules(filenames []string) []string {
-	var modules []string
+func getReferencedModules(filenames []string) ([]string, error) {
+	var allModules []string
 	for _, f := range filenames {
-		modules = append(modules, getReferencedModulesForFile(f)...)
+		modules, err := getReferencedModulesForFile(f)
+		if err != nil {
+			return nil, err
+		}
+		allModules = append(allModules, modules...)
 	}
 
-	return modules
+	return allModules, nil
 }
 
-func getReferencedModulesForFile(filename string) []string {
+func getReferencedModulesForFile(filename string) ([]string, error) {
 	input, _ := os.ReadFile(filename)
-	hclFile, _ := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
+	hclFile, diags := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
+	if diags.HasErrors() {
+		return nil, errors.New("failed to parse TF file: " + diags.Error())
+	}
 
 	hclBody := hclFile.Body()
 
@@ -76,5 +87,5 @@ func getReferencedModulesForFile(filename string) []string {
 		}
 	}
 
-	return modules
+	return modules, nil
 }
