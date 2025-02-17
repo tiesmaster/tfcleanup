@@ -86,14 +86,24 @@ func toMap(vars []variable) map[string]variable {
 }
 
 func equals(attr *hclwrite.Attribute, definedVar variable) bool {
-	// var bl *hclwrite.Block
-	// bl = definedVar
+	var dv *hclwrite.Block
+	dv = definedVar
 
-	// definedDefaultValue := bl.Body().GetAttribute("default")
-	// attr.BuildTokens().Bytes()
+	// fmt.Println(dv.Labels()[0])
+	definedDefaultValue := dv.Body().GetAttribute("default")
+	if definedDefaultValue == nil {
+		return false
+	}
 
-	return true
+	// fmt.Println(attributeToString(attr))
+	// fmt.Println(attributeToString(definedDefaultValue))
 
+	return attributeToString(attr) == attributeToString(definedDefaultValue)
 
+	// return true
+}
 
+func attributeToString(definedDefaultValue *hclwrite.Attribute) string {
+	tokens := definedDefaultValue.Expr().BuildTokens(nil)
+	return string(tokens.Bytes()[:])
 }
