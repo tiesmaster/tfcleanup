@@ -10,6 +10,17 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
+func ensureTargetDir() error {
+	if targetDir != "" {
+		err := os.Chdir(targetDir)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func getReferencedModules(filenames []string) ([]string, error) {
 	var allModules []string
 	for _, f := range filenames {

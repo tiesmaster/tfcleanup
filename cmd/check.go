@@ -20,11 +20,7 @@ func init() {
 }
 
 func runCheckCmd(cmd *cobra.Command, args []string) error {
-	if targetDir == "" {
-		return fmt.Errorf("target dir cannot be empty (yet)")
-	}
-
-	err := os.Chdir(targetDir)
+	err := ensureTargetDir()
 	if err != nil {
 		return err
 	}
