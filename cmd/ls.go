@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -28,21 +25,18 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	dir := os.DirFS(".")
-	matches, _ := fs.Glob(dir, "*.tf")
-
-	if len(matches) == 0 {
-		return errors.New("no TF files detected")
+	tfFiles, err := getTerraformFiles()
+	if err != nil {
+		return err
 	}
-
 	if verbose {
 		fmt.Println("Discovered TF files: ")
-		for _, m := range matches {
+		for _, m := range tfFiles {
 			fmt.Printf("\t%v\n", m)
 		}
 	}
 
-	referencedModules, err := getReferencedModules(matches)
+	referencedModules, err := getReferencedModules(tfFiles)
 	if err != nil {
 		return err
 	}

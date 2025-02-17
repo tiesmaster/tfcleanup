@@ -21,6 +21,20 @@ func ensureTargetDir() error {
 	return nil
 }
 
+func getTerraformFiles() ([]string, error) {
+	dir := os.DirFS(".")
+	matches, err := fs.Glob(dir, "*.tf")
+	if err != nil {
+		return nil, err
+	}
+
+	if len(matches) == 0 {
+		return nil, errors.New("no TF files detected")
+	}
+
+	return matches, nil
+}
+
 func getReferencedModules(filenames []string) ([]string, error) {
 	var allModules []string
 	for _, f := range filenames {

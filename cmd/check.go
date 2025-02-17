@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -25,15 +22,13 @@ func runCheckCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	dir := os.DirFS(".")
-	matches, _ := fs.Glob(dir, "*.tf")
-
-	if len(matches) == 0 {
-		return errors.New("no TF files detected")
+	tfFiles, err := getTerraformFiles()
+	if err != nil {
+		return err
 	}
 
 	// checks for default vars on modules
-	err = checkForDefaultVars(matches)
+	err = checkForDefaultVars(tfFiles)
 	if err != nil {
 		return err
 	}
