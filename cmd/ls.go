@@ -85,7 +85,7 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 func getReferencedModules(filenames []string) ([]string, error) {
 	var allModules []string
 	for _, f := range filenames {
-		modules, err := getReferencedModulesForFile(f)
+		modules, err := readModules(f)
 		if err != nil {
 			return nil, err
 		}
@@ -95,20 +95,15 @@ func getReferencedModules(filenames []string) ([]string, error) {
 	return allModules, nil
 }
 
-func getReferencedModulesForFile(filename string) ([]string, error) {
-	input, _ := os.ReadFile(filename)
-	hclFile, diags := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
-	if diags.HasErrors() {
-		return nil, errors.New("failed to parse TF file: " + diags.Error())
+func readModules(filename string) ([]string, error) {
+	moduleBlocks, err := getBlocksFromFile(filename, "module")
+	if err != nil {
+		return nil, err
 	}
 
-	hclBody := hclFile.Body()
-
 	var modules []string
-	for _, bl := range hclBody.Blocks() {
-		if bl.Type() == "module" {
-			modules = append(modules, bl.Labels()[0])
-		}
+	for _, bl := range moduleBlocks {
+		modules = append(modules, bl.Labels()[0])
 	}
 
 	return modules, nil
@@ -134,6 +129,20 @@ func getModuleVariables(mod string) ([]string, error) {
 }
 
 func readVariables(filename string) ([]string, error) {
+	variableBlocks, err := getBlocksFromFile(filename, "variable")
+	if err != nil {
+		return nil, err
+	}
+
+	var variables []string
+	for _, bl := range variableBlocks {
+		variables = append(variables, bl.Labels()[0])
+	}
+
+	return variables, nil
+}
+
+func getBlocksFromFile(filename, blockName string) ([]*hclwrite.Block, error) {
 	input, _ := os.ReadFile(filename)
 	hclFile, diags := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
 	if diags.HasErrors() {
@@ -142,12 +151,12 @@ func readVariables(filename string) ([]string, error) {
 
 	hclBody := hclFile.Body()
 
-	var variables []string
+	var blocks []*hclwrite.Block
 	for _, bl := range hclBody.Blocks() {
-		if bl.Type() == "variable" {
-			variables = append(variables, bl.Labels()[0])
+		if bl.Type() == blockName {
+			blocks = append(blocks, bl)
 		}
 	}
 
-	return variables, nil
+	return blocks, nil
 }
