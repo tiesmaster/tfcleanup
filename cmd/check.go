@@ -57,7 +57,7 @@ func checkForDefaultVars(files []string) error {
 	return nil
 }
 
-func checkForDefaultVarsInModule(module string) error {
+func checkForDefaultVarsInModule(module module) error {
 	moduleVars, err := getModuleVariables(module)
 	if err != nil {
 		return err

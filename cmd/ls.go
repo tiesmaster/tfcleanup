@@ -48,14 +48,14 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 
 	fmt.Println("Detected modules:")
 	for _, mod := range referencedModules {
-		fmt.Printf("\t%v\n", mod)
+		fmt.Printf("\t%v\n", name(mod))
 	}
 
 	if resolveVariables {
 		fmt.Printf("\n\nVariables for modules:\n")
 
 		for _, mod := range referencedModules {
-			fmt.Printf("\n%v:\n", mod)
+			fmt.Printf("\n%v:\n", name(mod))
 			vars, err := getModuleVariables(mod)
 			if err != nil {
 				return err

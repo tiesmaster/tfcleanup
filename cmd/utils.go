@@ -35,8 +35,10 @@ func getTerraformFiles() ([]string, error) {
 	return matches, nil
 }
 
-func getReferencedModules(filenames []string) ([]string, error) {
-	var allModules []string
+type module *hclwrite.Block
+
+func getReferencedModules(filenames []string) ([]module, error) {
+	var allModules []module
 	for _, f := range filenames {
 		modules, err := readModules(f)
 		if err != nil {
@@ -48,22 +50,22 @@ func getReferencedModules(filenames []string) ([]string, error) {
 	return allModules, nil
 }
 
-func readModules(filename string) ([]string, error) {
+func readModules(filename string) ([]module, error) {
 	moduleBlocks, err := getBlocksFromFile(filename, "module")
 	if err != nil {
 		return nil, err
 	}
 
-	var modules []string
+	var modules []module
 	for _, bl := range moduleBlocks {
-		modules = append(modules, bl.Labels()[0])
+		modules = append(modules, bl)
 	}
 
 	return modules, nil
 }
 
-func getModuleVariables(mod string) ([]string, error) {
-	moduleDir := path.Join(".terraform/modules/", mod)
+func getModuleVariables(mod module) ([]string, error) {
+	moduleDir := path.Join(".terraform/modules/", name(mod))
 	matches, err := fs.Glob(os.DirFS(moduleDir), "*.tf")
 	if err != nil {
 		return nil, err
@@ -79,6 +81,12 @@ func getModuleVariables(mod string) ([]string, error) {
 	}
 
 	return allVariables, nil
+}
+
+func name(mod module) string {
+	var bl *hclwrite.Block
+	bl = mod
+	return bl.Labels()[0]
 }
 
 func readVariables(filename string) ([]string, error) {
