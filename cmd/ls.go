@@ -50,9 +50,13 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("Detected modules:")
-	for _, m := range referencedModules {
-		fmt.Printf("\t%v\n", m)
+	if len(referencedModules) > 0 {
+		fmt.Println("Detected modules:")
+		for _, m := range referencedModules {
+			fmt.Printf("\t%v\n", m)
+		}
+	} else {
+		fmt.Println("No modules detected in any of the TF files")
 	}
 
 	return nil
