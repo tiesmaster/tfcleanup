@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/spf13/cobra"
 )
 
@@ -58,12 +59,41 @@ func checkForDefaultVars(files []string) error {
 }
 
 func checkForDefaultVarsInModule(module module) error {
-	moduleVars, err := getModuleVariables(module)
+	definedVars, err := getModuleVariables(module)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(moduleVars)
+	dvMap := toMap(definedVars)
+	referencedVars := getAttributes(module)
+	fmt.Println("The following referenced vars are the same as the default for module " + nameM(module))
+	for attrName, dv := range referencedVars {
+		if rv := dvMap[attrName]; rv != nil && equals(dv, rv) {
+			fmt.Printf("\t%v\n", nameV(rv))
+		}
+	}
 
 	return nil
+}
+
+func toMap(vars []variable) map[string]variable {
+	m := make(map[string]variable)
+	for _, v := range vars {
+		m[nameV(v)] = v
+	}
+
+	return m
+}
+
+func equals(attr *hclwrite.Attribute, definedVar variable) bool {
+	// var bl *hclwrite.Block
+	// bl = definedVar
+
+	// definedDefaultValue := bl.Body().GetAttribute("default")
+	// attr.BuildTokens().Bytes()
+
+	return true
+
+
+
 }

@@ -128,3 +128,10 @@ func getBlocksFromFile(filename, blockName string) ([]*hclwrite.Block, error) {
 
 	return blocks, nil
 }
+
+func getAttributes(module module) map[string]*hclwrite.Attribute {
+	var bl *hclwrite.Block
+	bl = module
+
+	return bl.Body().Attributes()
+}
