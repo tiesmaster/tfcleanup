@@ -53,7 +53,7 @@ func printReport(report unneededAttrAssigs) {
 		fmt.Printf("\nThe following module assignments are unneeded for module '%v':\n", mod.name())
 
 		for _, v := range unneededVars {
-			fmt.Printf("\t%v\n", v.name())
+			fmt.Printf("\t%v\n", v)
 		}
 	}
 }

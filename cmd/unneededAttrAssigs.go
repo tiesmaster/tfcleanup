@@ -2,7 +2,7 @@ package cmd
 
 import "fmt"
 
-type unneededAttrAssigs map[module][]variableDefinition
+type unneededAttrAssigs map[module][]string
 
 func checkForUnneededAttributeAssignments(files []string) (unneededAttrAssigs, error) {
 	referencedModules, err := getReferencedModules(files)
@@ -21,10 +21,18 @@ func checkForUnneededAttributeAssignments(files []string) (unneededAttrAssigs, e
 			return nil, err
 		}
 
-		m[mod] = unneededAssignments
+		m[mod] = getAttrNames(unneededAssignments)
 	}
 
 	return m, nil
+}
+
+func getAttrNames(unneededAssignments []variableDefinition) []string {
+	var names []string
+	for _, assign := range unneededAssignments {
+		names = append(names, assign.name())
+	}
+	return names
 }
 
 func checkForUnneededAssignments(module module) ([]variableDefinition, error) {
