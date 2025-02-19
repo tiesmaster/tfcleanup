@@ -1,6 +1,10 @@
 package cmd
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/hcl/v2/hclwrite"
+)
 
 type unneededAttrAssigs map[module][]string
 
@@ -73,4 +77,28 @@ func toMap(vars []variableDefinition) map[string]variableDefinition {
 	}
 
 	return m
+}
+
+func removeUnneededAttributes(report unneededAttrAssigs) error {
+	for mod, unneededVars := range report {
+		if len(unneededVars) == 0 {
+			continue
+		}
+		err := removeUnneededAttributesFromModule(mod, unneededVars)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func removeUnneededAttributesFromModule(mod module, unneededVars []string) error {
+	return patchFile(mod.filename, func(hclFile *hclwrite.File) (*hclwrite.File, error) {
+		moduleBlock := getModuleBlock(hclFile, mod)
+		for _, v := range unneededVars {
+			moduleBlock.Body().RemoveAttribute(v)
+		}
+
+		return hclFile, nil
+	})
 }
