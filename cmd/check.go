@@ -28,61 +28,32 @@ func runCheckCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// checks for attribute assignments with default values of variable from their module
-	err = checkForUnneededAttributeAssignments(tfFiles)
+	report, err := checkForUnneededAttributeAssignments(tfFiles)
 	if err != nil {
 		return err
 	}
+
+	printReport(report)
 
 	return nil
 }
 
-func checkForUnneededAttributeAssignments(files []string) error {
-	referencedModules, err := getReferencedModules(files)
-	if err != nil {
-		return err
+func printReport(report unneededAttrAssigs) {
+	if len(report) == 0 {
+		fmt.Println("No unneeded module assignments were found")
+		return
 	}
 
-	if len(referencedModules) == 0 {
-		return nil
-	}
+	for mod, unneededVars := range report {
+		if len(unneededVars) == 0 {
+			fmt.Printf("\nNo unneeded module assignments were found for module '%v'\n", mod.name())
+			continue
+		}
 
-	for _, mod := range referencedModules {
-		err = checkForUnneededAssignments(mod)
-		if err != nil {
-			return err
+		fmt.Printf("\nThe following module assignments are unneeded for module '%v':\n", mod.name())
+
+		for _, v := range unneededVars {
+			fmt.Printf("\t%v\n", v.name())
 		}
 	}
-	return nil
-}
-
-func checkForUnneededAssignments(module module) error {
-	moduleVariables, err := getModuleVariables(module)
-	if err != nil {
-		return err
-	}
-
-	moduleVariablesMap := toMap(moduleVariables)
-	variableAssignments := getVariableAssignments(module)
-
-	// TODO: Filter for "well-known" attribute assignments that are TF specific (version, and source)
-
-	fmt.Println("The following referenced vars are the same as the default for module " + module.name())
-	for varName, assignExpr := range variableAssignments {
-		if varDefinition, exists := moduleVariablesMap[varName]; exists && equalToVariableDefinition(assignExpr, varDefinition) {
-			fmt.Printf("\t%v\n", varDefinition.name())
-		} else if !exists && verbose {
-			fmt.Printf("WARNING: module assignment not found as variable in referenced module: %v\n", varName)
-		}
-	}
-
-	return nil
-}
-
-func toMap(vars []variableDefinition) map[string]variableDefinition {
-	m := make(map[string]variableDefinition)
-	for _, v := range vars {
-		m[v.name()] = v
-	}
-
-	return m
 }
