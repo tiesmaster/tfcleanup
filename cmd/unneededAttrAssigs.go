@@ -36,7 +36,8 @@ func checkForUnneededAssignments(module module) ([]variableDefinition, error) {
 	moduleVariablesMap := toMap(moduleVariables)
 	variableAssignments := getVariableAssignments(module)
 
-	// TODO: Filter for "well-known" attribute assignments that are TF specific (version, and source)
+	variableAssignments = filterForTerraformAssignments(variableAssignments)
+
 
 	var unneededAssignments []variableDefinition
 	for varName, assignExpr := range variableAssignments {
@@ -48,6 +49,13 @@ func checkForUnneededAssignments(module module) ([]variableDefinition, error) {
 	}
 
 	return unneededAssignments, nil
+}
+
+func filterForTerraformAssignments(variableAssignments map[string]expression) map[string]expression {
+	delete(variableAssignments, "source")
+	delete(variableAssignments, "version")
+
+	return variableAssignments
 }
 
 func toMap(vars []variableDefinition) map[string]variableDefinition {
