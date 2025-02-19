@@ -149,6 +149,16 @@ func getBlocksFromFile(filename, blockName string) ([]*hclwrite.Block, error) {
 	return blocks, nil
 }
 
+func readHclFile(filename string) (*hclwrite.File, error) {
+	input, _ := os.ReadFile(filename)
+	hclFile, diags := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
+	if diags.HasErrors() {
+		return nil, errors.New("failed to parse TF file: " + diags.Error())
+	}
+
+	return hclFile, nil
+}
+
 func getVariableAssignments(module module) map[string]expression {
 	m := module.bl.Body().Attributes()
 
@@ -202,4 +212,8 @@ func getModuleBlock(hclFile *hclwrite.File, mod module) *hclwrite.Block {
 		}
 	}
 	return nil
+}
+
+func isTokenText(token *hclwrite.Token, text string) bool {
+	return string(token.Bytes) == text
 }

@@ -35,6 +35,19 @@ func runCheckCmd(cmd *cobra.Command, args []string) error {
 
 	printReport(report)
 
+	// check for format() usage
+	filesWithFormatUsage, err := checkForFormatUsage(tfFiles)
+	if err != nil {
+		return err
+	}
+
+	if len(filesWithFormatUsage) > 0 {
+		fmt.Println("\nThe following files have format() usage")
+		for _, f := range filesWithFormatUsage {
+			fmt.Printf("\t%v\n", f)
+		}
+	}
+
 	return nil
 }
 
