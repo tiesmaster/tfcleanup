@@ -66,10 +66,10 @@ func checkForUnneededAssignments(module module) error {
 
 	// TODO: Filter for "well-known" attribute assignments that are TF specific (version, and source)
 
-	fmt.Println("The following referenced vars are the same as the default for module " + nameM(module))
+	fmt.Println("The following referenced vars are the same as the default for module " + module.name())
 	for varName, assignExpr := range variableAssignments {
 		if varDefinition, exists := moduleVariablesMap[varName]; exists && equalToVariableDefinition(assignExpr, varDefinition) {
-			fmt.Printf("\t%v\n", nameV(varDefinition))
+			fmt.Printf("\t%v\n", varDefinition.name())
 		} else if !exists && verbose {
 			fmt.Printf("WARNING: module assignment not found as variable in referenced module: %v\n", varName)
 		}
@@ -81,7 +81,7 @@ func checkForUnneededAssignments(module module) error {
 func toMap(vars []variableDefinition) map[string]variableDefinition {
 	m := make(map[string]variableDefinition)
 	for _, v := range vars {
-		m[nameV(v)] = v
+		m[v.name()] = v
 	}
 
 	return m

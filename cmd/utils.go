@@ -35,9 +35,17 @@ func getTerraformFiles() ([]string, error) {
 	return matches, nil
 }
 
-type module *hclwrite.Block
-type variableDefinition *hclwrite.Block
-type expression *hclwrite.Attribute
+type module struct {
+	bl *hclwrite.Block
+}
+
+type variableDefinition struct {
+	bl *hclwrite.Block
+}
+
+type expression struct {
+	attr *hclwrite.Attribute
+}
 
 func getReferencedModules(filenames []string) ([]module, error) {
 	var allModules []module
@@ -60,14 +68,14 @@ func readModules(filename string) ([]module, error) {
 
 	var modules []module
 	for _, bl := range moduleBlocks {
-		modules = append(modules, bl)
+		modules = append(modules, module{bl})
 	}
 
 	return modules, nil
 }
 
 func getModuleVariables(mod module) ([]variableDefinition, error) {
-	moduleDir := path.Join(".terraform/modules/", nameM(mod))
+	moduleDir := path.Join(".terraform/modules/", mod.name())
 	matches, err := fs.Glob(os.DirFS(moduleDir), "*.tf")
 	if err != nil {
 		return nil, err
@@ -85,14 +93,25 @@ func getModuleVariables(mod module) ([]variableDefinition, error) {
 	return allVariables, nil
 }
 
-func nameM(mod module) string {
-	bl := (*hclwrite.Block)(mod)
+func (mod module) name() string {
+	return blockName(mod.bl)
+}
+
+func (v variableDefinition) name() string {
+	return blockName(v.bl)
+}
+
+func blockName(bl *hclwrite.Block) string {
 	return bl.Labels()[0]
 }
 
-func nameV(v variableDefinition) string {
-	bl := (*hclwrite.Block)(v)
-	return bl.Labels()[0]
+func (v variableDefinition) defaultValue() *expression {
+	defaultValue := v.bl.Body().GetAttribute("default")
+	if defaultValue == nil {
+		return nil
+	}
+
+	return &expression{defaultValue}
 }
 
 func readVariables(filename string) ([]variableDefinition, error) {
@@ -103,7 +122,7 @@ func readVariables(filename string) ([]variableDefinition, error) {
 
 	var variables []variableDefinition
 	for _, bl := range variableBlocks {
-		variables = append(variables, bl)
+		variables = append(variables, variableDefinition{bl})
 	}
 
 	return variables, nil
@@ -129,30 +148,27 @@ func getBlocksFromFile(filename, blockName string) ([]*hclwrite.Block, error) {
 }
 
 func getVariableAssignments(module module) map[string]expression {
-	bl := (*hclwrite.Block)(module)
-	m := bl.Body().Attributes()
+	m := module.bl.Body().Attributes()
 
 	newMap := make(map[string]expression)
 	for k, v := range m {
-		newMap[k] = (expression)(v)
+		newMap[k] = expression{v}
 	}
 
 	return newMap
 }
 
 func equalToVariableDefinition(assignExpr expression, varDefinition variableDefinition) bool {
-	dv := (*hclwrite.Block)(varDefinition)
+	defaultValue := varDefinition.defaultValue()
 
-	defaultValue := dv.Body().GetAttribute("default")
 	if defaultValue == nil {
 		return false
 	}
 
-	return exprToString(assignExpr) == exprToString(defaultValue)
+	return assignExpr.exprToString() == defaultValue.exprToString()
 }
 
-func exprToString(expr expression) string {
-	attr := (*hclwrite.Attribute)(expr)
-	tokens := attr.Expr().BuildTokens(nil)
+func (expr expression) exprToString() string {
+	tokens := expr.attr.Expr().BuildTokens(nil)
 	return string(tokens.Bytes())
 }
