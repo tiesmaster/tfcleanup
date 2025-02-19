@@ -29,6 +29,7 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
 	if verbose {
 		fmt.Println("Discovered TF files: ")
 		for _, m := range tfFiles {

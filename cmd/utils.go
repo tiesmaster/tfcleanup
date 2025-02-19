@@ -85,14 +85,12 @@ func getModuleVariables(mod module) ([]variable, error) {
 }
 
 func nameM(mod module) string {
-	var bl *hclwrite.Block
-	bl = mod
+	bl := (*hclwrite.Block)(mod)
 	return bl.Labels()[0]
 }
 
 func nameV(v variable) string {
-	var bl *hclwrite.Block
-	bl = v
+	bl := (*hclwrite.Block)(v)
 	return bl.Labels()[0]
 }
 
