@@ -8,7 +8,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "tfcleanup",
-	Short: "Simple CLI to clean some obvious things in terraform files",
+	Short: "Simple CLI to clean some obvious things in terraform files (version=0.1.0)",
 }
 
 func Execute() {
