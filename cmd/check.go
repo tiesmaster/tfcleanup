@@ -43,8 +43,8 @@ func runCheckCmd(cmd *cobra.Command, args []string) error {
 
 	if len(filesWithFormatUsage) > 0 {
 		fmt.Println("\nThe following files have format() usage")
-		for _, f := range filesWithFormatUsage {
-			fmt.Printf("\t%v\n", f)
+		for f, lines := range filesWithFormatUsage {
+			fmt.Printf("\t%v on lines: %v\n", f, lines)
 		}
 	}
 
