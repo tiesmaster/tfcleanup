@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-type unneededAttrAssigs map[module][]string
+type unneededAttrAssigs map[module][]expression
 
 func checkForUnneededAttributeAssignments(files []string) (unneededAttrAssigs, error) {
 	referencedModules, err := getReferencedModules(files)
@@ -25,21 +25,13 @@ func checkForUnneededAttributeAssignments(files []string) (unneededAttrAssigs, e
 			return nil, err
 		}
 
-		m[mod] = getAttrNames(unneededAssignments)
+		m[mod] = unneededAssignments
 	}
 
 	return m, nil
 }
 
-func getAttrNames(unneededAssignments []variableDefinition) []string {
-	var names []string
-	for _, assign := range unneededAssignments {
-		names = append(names, assign.name())
-	}
-	return names
-}
-
-func checkForUnneededAssignments(module module) ([]variableDefinition, error) {
+func checkForUnneededAssignments(module module) ([]expression, error) {
 	moduleVariables, err := getModuleVariables(module)
 	if err != nil {
 		return nil, err
@@ -51,10 +43,10 @@ func checkForUnneededAssignments(module module) ([]variableDefinition, error) {
 	variableAssignments = filterForTerraformAssignments(variableAssignments)
 
 
-	var unneededAssignments []variableDefinition
+	var unneededAssignments []expression
 	for varName, assignExpr := range variableAssignments {
 		if varDefinition, exists := moduleVariablesMap[varName]; exists && equalToVariableDefinition(assignExpr, varDefinition) {
-			unneededAssignments = append(unneededAssignments, varDefinition)
+			unneededAssignments = append(unneededAssignments, assignExpr)
 		} else if !exists && verbose {
 			fmt.Printf("WARNING: module assignment not found as variable in referenced module '%v': %v\n", module.name(), varName)
 		}
@@ -80,11 +72,11 @@ func toMap(vars []variableDefinition) map[string]variableDefinition {
 }
 
 func removeUnneededAttributes(report unneededAttrAssigs) error {
-	for mod, unneededVars := range report {
-		if len(unneededVars) == 0 {
+	for mod, unneededAssign := range report {
+		if len(unneededAssign) == 0 {
 			continue
 		}
-		err := removeUnneededAttributesFromModule(mod, unneededVars)
+		err := removeUnneededAttributesFromModule(mod, unneededAssign)
 		if err != nil {
 			return err
 		}
@@ -92,11 +84,11 @@ func removeUnneededAttributes(report unneededAttrAssigs) error {
 	return nil
 }
 
-func removeUnneededAttributesFromModule(mod module, unneededVars []string) error {
+func removeUnneededAttributesFromModule(mod module, unneededAssigns []expression) error {
 	return patchFile(mod.filename(), func(hclFile *hclwrite.File) (*hclwrite.File, error) {
 		moduleBlock := getModuleBlockForWrite(hclFile, mod)
-		for _, v := range unneededVars {
-			moduleBlock.Body().RemoveAttribute(v)
+		for _, assign := range unneededAssigns {
+			moduleBlock.Body().RemoveAttribute(assign.name())
 		}
 
 		return hclFile, nil
