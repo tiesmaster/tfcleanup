@@ -62,7 +62,7 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 				return err
 			}
 			for _, v := range vars {
-				fmt.Printf("\t%v\n", v.name())
+				fmt.Printf("\t%v (%v)\n", v.name(), v.location())
 			}
 		}
 	}
