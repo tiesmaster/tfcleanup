@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 
@@ -79,6 +80,10 @@ func (mod module) name() string {
 
 func (v variableDefinition) name() string {
 	return blockName(v.bl)
+}
+
+func (mod module) location() string {
+	return fmt.Sprintf("%v:%v", mod.bl.Range().Filename, mod.bl.Range().Start.Line)
 }
 
 func blockName(bl *hclsyntax.Block) string {
