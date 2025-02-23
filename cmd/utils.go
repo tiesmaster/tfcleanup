@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -71,7 +72,22 @@ func readModules(filename string) ([]module, error) {
 }
 
 func getModuleVariables(mod module) ([]variableDefinition, error) {
-	panic("not implemented")
+	moduleDir := path.Join(".terraform/modules/", mod.name())
+	matches, err := fs.Glob(os.DirFS(moduleDir), "*.tf")
+	if err != nil {
+		return nil, err
+	}
+
+	var allVariables []variableDefinition
+	for _, m := range matches {
+		vars, err := readVariables(path.Join(moduleDir, m))
+		if err != nil {
+			return nil, err
+		}
+		allVariables = append(allVariables, vars...)
+	}
+
+	return allVariables, nil
 }
 
 func (mod module) name() string {
@@ -88,6 +104,20 @@ func (mod module) location() string {
 
 func blockName(bl *hclsyntax.Block) string {
 	return bl.Labels[0]
+}
+
+func readVariables(filename string) ([]variableDefinition, error) {
+	variableBlocks, err := getBlocksFromFile(filename, "variable")
+	if err != nil {
+		return nil, err
+	}
+
+	var variables []variableDefinition
+	for _, bl := range variableBlocks {
+		variables = append(variables, variableDefinition{bl})
+	}
+
+	return variables, nil
 }
 
 func getBlocksFromFile(filename, blockName string) ([]*hclsyntax.Block, error) {
