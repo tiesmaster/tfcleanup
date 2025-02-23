@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
@@ -42,6 +43,10 @@ type module struct {
 
 type variableDefinition struct {
 	bl *hclsyntax.Block
+}
+
+type expression struct {
+	attr *hclsyntax.Attribute
 }
 
 func getReferencedModules(filenames []string) ([]module, error) {
@@ -98,8 +103,21 @@ func (v variableDefinition) name() string {
 	return blockName(v.bl)
 }
 
+func (v variableDefinition) defaultValue() *expression {
+	defaultValue := getAttribute(v.bl.Body, "default")
+	if defaultValue == nil {
+		return nil
+	}
+
+	return &expression{defaultValue}
+}
+
 func (mod module) location() string {
 	return location(mod.bl)
+}
+
+func (mod module) filename() string {
+	return mod.bl.Range().Filename
 }
 
 func (v variableDefinition) location() string {
@@ -112,6 +130,16 @@ func blockName(bl *hclsyntax.Block) string {
 
 func location(bl *hclsyntax.Block) string {
 	return fmt.Sprintf("%v:%v", bl.Range().Filename, bl.Range().Start.Line)
+}
+
+func getAttribute(body *hclsyntax.Body, attrName string) *hclsyntax.Attribute {
+	// TODO: Convert this to casting body.Attributes to map[string]*Attribute
+	for _, a := range body.Attributes {
+		if a.Name == attrName {
+			return a
+		}
+	}
+	return nil
 }
 
 func readVariables(filename string) ([]variableDefinition, error) {
@@ -144,4 +172,32 @@ func getBlocksFromFile(filename, blockName string) ([]*hclsyntax.Block, error) {
 	}
 
 	return blocks, nil
+}
+
+func getVariableAssignments(module module) map[string]expression {
+	m := module.bl.Body.Attributes
+
+	newMap := make(map[string]expression)
+	for k, v := range m {
+		newMap[k] = expression{v}
+	}
+
+	return newMap
+}
+
+func equalToVariableDefinition(assignExpr expression, varDefinition variableDefinition) bool {
+	defaultValue := varDefinition.defaultValue()
+
+	if defaultValue == nil {
+		return false
+	}
+
+	return equals(assignExpr, *defaultValue)
+}
+
+func equals(a expression, b expression) bool {
+	valA, _ := a.attr.Expr.Value(&hcl.EvalContext{})
+	valB, _ := b.attr.Expr.Value(&hcl.EvalContext{})
+
+	return valA.RawEquals(valB)
 }
