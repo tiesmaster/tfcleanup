@@ -6,10 +6,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-type unneededAttrAssigs map[module][]string
+type unneededAttrAssigs map[moduleLegacy][]string
 
 func checkForUnneededAttributeAssignments(files []string) (unneededAttrAssigs, error) {
-	referencedModules, err := getReferencedModules(files)
+	referencedModules, err := getReferencedModulesLegacy(files)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func checkForUnneededAttributeAssignments(files []string) (unneededAttrAssigs, e
 	return m, nil
 }
 
-func getAttrNames(unneededAssignments []variableDefinition) []string {
+func getAttrNames(unneededAssignments []variableDefinitionLegacy) []string {
 	var names []string
 	for _, assign := range unneededAssignments {
 		names = append(names, assign.name())
@@ -39,21 +39,21 @@ func getAttrNames(unneededAssignments []variableDefinition) []string {
 	return names
 }
 
-func checkForUnneededAssignments(module module) ([]variableDefinition, error) {
-	moduleVariables, err := getModuleVariables(module)
+func checkForUnneededAssignments(module moduleLegacy) ([]variableDefinitionLegacy, error) {
+	moduleVariables, err := getModuleVariablesLegacy(module)
 	if err != nil {
 		return nil, err
 	}
 
 	moduleVariablesMap := toMap(moduleVariables)
-	variableAssignments := getVariableAssignments(module)
+	variableAssignments := getVariableAssignmentsLegacy(module)
 
 	variableAssignments = filterForTerraformAssignments(variableAssignments)
 
 
-	var unneededAssignments []variableDefinition
+	var unneededAssignments []variableDefinitionLegacy
 	for varName, assignExpr := range variableAssignments {
-		if varDefinition, exists := moduleVariablesMap[varName]; exists && equalToVariableDefinition(assignExpr, varDefinition) {
+		if varDefinition, exists := moduleVariablesMap[varName]; exists && equalToVariableDefinitionLegacy(assignExpr, varDefinition) {
 			unneededAssignments = append(unneededAssignments, varDefinition)
 		} else if !exists && verbose {
 			fmt.Printf("WARNING: module assignment not found as variable in referenced module '%v': %v\n", module.name(), varName)
@@ -63,15 +63,15 @@ func checkForUnneededAssignments(module module) ([]variableDefinition, error) {
 	return unneededAssignments, nil
 }
 
-func filterForTerraformAssignments(variableAssignments map[string]expression) map[string]expression {
+func filterForTerraformAssignments(variableAssignments map[string]expressionLegacy) map[string]expressionLegacy {
 	delete(variableAssignments, "source")
 	delete(variableAssignments, "version")
 
 	return variableAssignments
 }
 
-func toMap(vars []variableDefinition) map[string]variableDefinition {
-	m := make(map[string]variableDefinition)
+func toMap(vars []variableDefinitionLegacy) map[string]variableDefinitionLegacy {
+	m := make(map[string]variableDefinitionLegacy)
 	for _, v := range vars {
 		m[v.name()] = v
 	}
@@ -92,9 +92,9 @@ func removeUnneededAttributes(report unneededAttrAssigs) error {
 	return nil
 }
 
-func removeUnneededAttributesFromModule(mod module, unneededVars []string) error {
-	return patchFile(mod.filename, func(hclFile *hclwrite.File) (*hclwrite.File, error) {
-		moduleBlock := getModuleBlock(hclFile, mod)
+func removeUnneededAttributesFromModule(mod moduleLegacy, unneededVars []string) error {
+	return patchFileLegacy(mod.filename, func(hclFile *hclwrite.File) (*hclwrite.File, error) {
+		moduleBlock := getModuleBlockLegacy(hclFile, mod)
 		for _, v := range unneededVars {
 			moduleBlock.Body().RemoveAttribute(v)
 		}

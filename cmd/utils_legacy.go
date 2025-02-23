@@ -36,23 +36,23 @@ func getTerraformFiles() ([]string, error) {
 	return matches, nil
 }
 
-type module struct {
+type moduleLegacy struct {
 	bl       *hclwrite.Block
 	filename string
 }
 
-type variableDefinition struct {
+type variableDefinitionLegacy struct {
 	bl *hclwrite.Block
 }
 
-type expression struct {
+type expressionLegacy struct {
 	attr *hclwrite.Attribute
 }
 
-func getReferencedModules(filenames []string) ([]module, error) {
-	var allModules []module
+func getReferencedModulesLegacy(filenames []string) ([]moduleLegacy, error) {
+	var allModules []moduleLegacy
 	for _, f := range filenames {
-		modules, err := readModules(f)
+		modules, err := readModulesLegacy(f)
 		if err != nil {
 			return nil, err
 		}
@@ -62,30 +62,30 @@ func getReferencedModules(filenames []string) ([]module, error) {
 	return allModules, nil
 }
 
-func readModules(filename string) ([]module, error) {
-	moduleBlocks, err := getBlocksFromFile(filename, "module")
+func readModulesLegacy(filename string) ([]moduleLegacy, error) {
+	moduleBlocks, err := getBlocksFromFileLegacy(filename, "module")
 	if err != nil {
 		return nil, err
 	}
 
-	var modules []module
+	var modules []moduleLegacy
 	for _, bl := range moduleBlocks {
-		modules = append(modules, module{bl, filename})
+		modules = append(modules, moduleLegacy{bl, filename})
 	}
 
 	return modules, nil
 }
 
-func getModuleVariables(mod module) ([]variableDefinition, error) {
+func getModuleVariablesLegacy(mod moduleLegacy) ([]variableDefinitionLegacy, error) {
 	moduleDir := path.Join(".terraform/modules/", mod.name())
 	matches, err := fs.Glob(os.DirFS(moduleDir), "*.tf")
 	if err != nil {
 		return nil, err
 	}
 
-	var allVariables []variableDefinition
+	var allVariables []variableDefinitionLegacy
 	for _, m := range matches {
-		vars, err := readVariables(path.Join(moduleDir, m))
+		vars, err := readVariablesLegacy(path.Join(moduleDir, m))
 		if err != nil {
 			return nil, err
 		}
@@ -95,42 +95,42 @@ func getModuleVariables(mod module) ([]variableDefinition, error) {
 	return allVariables, nil
 }
 
-func (mod module) name() string {
-	return blockName(mod.bl)
+func (mod moduleLegacy) name() string {
+	return blockNameLegacy(mod.bl)
 }
 
-func (v variableDefinition) name() string {
-	return blockName(v.bl)
+func (v variableDefinitionLegacy) name() string {
+	return blockNameLegacy(v.bl)
 }
 
-func blockName(bl *hclwrite.Block) string {
+func blockNameLegacy(bl *hclwrite.Block) string {
 	return bl.Labels()[0]
 }
 
-func (v variableDefinition) defaultValue() *expression {
+func (v variableDefinitionLegacy) defaultValue() *expressionLegacy {
 	defaultValue := v.bl.Body().GetAttribute("default")
 	if defaultValue == nil {
 		return nil
 	}
 
-	return &expression{defaultValue}
+	return &expressionLegacy{defaultValue}
 }
 
-func readVariables(filename string) ([]variableDefinition, error) {
-	variableBlocks, err := getBlocksFromFile(filename, "variable")
+func readVariablesLegacy(filename string) ([]variableDefinitionLegacy, error) {
+	variableBlocks, err := getBlocksFromFileLegacy(filename, "variable")
 	if err != nil {
 		return nil, err
 	}
 
-	var variables []variableDefinition
+	var variables []variableDefinitionLegacy
 	for _, bl := range variableBlocks {
-		variables = append(variables, variableDefinition{bl})
+		variables = append(variables, variableDefinitionLegacy{bl})
 	}
 
 	return variables, nil
 }
 
-func getBlocksFromFile(filename, blockName string) ([]*hclwrite.Block, error) {
+func getBlocksFromFileLegacy(filename, blockName string) ([]*hclwrite.Block, error) {
 	input, _ := os.ReadFile(filename)
 	hclFile, diags := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
 	if diags.HasErrors() {
@@ -149,7 +149,7 @@ func getBlocksFromFile(filename, blockName string) ([]*hclwrite.Block, error) {
 	return blocks, nil
 }
 
-func readHclFile(filename string) (*hclwrite.File, error) {
+func readHclFileLegacy(filename string) (*hclwrite.File, error) {
 	input, _ := os.ReadFile(filename)
 	hclFile, diags := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
 	if diags.HasErrors() {
@@ -159,18 +159,18 @@ func readHclFile(filename string) (*hclwrite.File, error) {
 	return hclFile, nil
 }
 
-func getVariableAssignments(module module) map[string]expression {
+func getVariableAssignmentsLegacy(module moduleLegacy) map[string]expressionLegacy {
 	m := module.bl.Body().Attributes()
 
-	newMap := make(map[string]expression)
+	newMap := make(map[string]expressionLegacy)
 	for k, v := range m {
-		newMap[k] = expression{v}
+		newMap[k] = expressionLegacy{v}
 	}
 
 	return newMap
 }
 
-func equalToVariableDefinition(assignExpr expression, varDefinition variableDefinition) bool {
+func equalToVariableDefinitionLegacy(assignExpr expressionLegacy, varDefinition variableDefinitionLegacy) bool {
 	defaultValue := varDefinition.defaultValue()
 
 	if defaultValue == nil {
@@ -180,12 +180,12 @@ func equalToVariableDefinition(assignExpr expression, varDefinition variableDefi
 	return assignExpr.exprToString() == defaultValue.exprToString()
 }
 
-func (expr expression) exprToString() string {
+func (expr expressionLegacy) exprToString() string {
 	tokens := expr.attr.Expr().BuildTokens(nil)
 	return string(tokens.Bytes())
 }
 
-func patchFile(filename string, patch func(hclFile *hclwrite.File) (*hclwrite.File, error)) error {
+func patchFileLegacy(filename string, patch func(hclFile *hclwrite.File) (*hclwrite.File, error)) error {
 	input, _ := os.ReadFile(filename)
 	hclFile, diags := hclwrite.ParseConfig(input, filename, hcl.Pos{Line: 1, Column: 1})
 
@@ -205,7 +205,7 @@ func patchFile(filename string, patch func(hclFile *hclwrite.File) (*hclwrite.Fi
 	return nil
 }
 
-func getModuleBlock(hclFile *hclwrite.File, mod module) *hclwrite.Block {
+func getModuleBlockLegacy(hclFile *hclwrite.File, mod moduleLegacy) *hclwrite.Block {
 	for _, bl := range hclFile.Body().Blocks() {
 		if bl.Type() == "module" && bl.Labels()[0] == mod.name() {
 			return bl
@@ -214,6 +214,6 @@ func getModuleBlock(hclFile *hclwrite.File, mod module) *hclwrite.Block {
 	return nil
 }
 
-func isTokenText(token *hclwrite.Token, text string) bool {
+func isTokenTextLegacy(token *hclwrite.Token, text string) bool {
 	return string(token.Bytes) == text
 }

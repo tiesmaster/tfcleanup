@@ -37,7 +37,7 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	referencedModules, err := getReferencedModules(tfFiles)
+	referencedModules, err := getReferencedModulesLegacy(tfFiles)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func runLsCmd(cmd *cobra.Command, args []string) error {
 
 		for _, mod := range referencedModules {
 			fmt.Printf("\n%v:\n", mod.name())
-			vars, err := getModuleVariables(mod)
+			vars, err := getModuleVariablesLegacy(mod)
 			if err != nil {
 				return err
 			}

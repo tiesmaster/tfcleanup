@@ -21,7 +21,7 @@ func checkForFormatUsage(files []string) ([]string, error) {
 }
 
 func checkForFormatUsageInFile(file string) (bool, error) {
-	hclFile, err := readHclFile(file)
+	hclFile, err := readHclFileLegacy(file)
 	if err != nil {
 		return false, err
 	}
@@ -37,5 +37,5 @@ func checkForFormatUsageInFile(file string) (bool, error) {
 }
 
 func isFormatToken(token *hclwrite.Token) bool {
-	return token.Type == hclsyntax.TokenIdent && isTokenText(token, "format")
+	return token.Type == hclsyntax.TokenIdent && isTokenTextLegacy(token, "format")
 }
