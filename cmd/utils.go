@@ -103,6 +103,22 @@ func (v variableDefinition) name() string {
 	return blockName(v.bl)
 }
 
+func (e expression) name() string {
+	return e.attr.Name
+}
+
+func (mod module) location() string {
+	return location(mod.bl.Range())
+}
+
+func (v variableDefinition) location() string {
+	return location(v.bl.Range())
+}
+
+func (e expression) location() string {
+	return location(e.attr.Range())
+}
+
 func (v variableDefinition) defaultValue() *expression {
 	defaultValue := getAttribute(v.bl.Body, "default")
 	if defaultValue == nil {
@@ -112,24 +128,17 @@ func (v variableDefinition) defaultValue() *expression {
 	return &expression{defaultValue}
 }
 
-func (mod module) location() string {
-	return location(mod.bl)
-}
-
 func (mod module) filename() string {
 	return mod.bl.Range().Filename
 }
 
-func (v variableDefinition) location() string {
-	return location(v.bl)
-}
 
 func blockName(bl *hclsyntax.Block) string {
 	return bl.Labels[0]
 }
 
-func location(bl *hclsyntax.Block) string {
-	return fmt.Sprintf("%v:%v", bl.Range().Filename, bl.Range().Start.Line)
+func location(r hcl.Range) string {
+	return fmt.Sprintf("%v:%v", r.Filename, r.Start.Line)
 }
 
 func getAttribute(body *hclsyntax.Body, attrName string) *hclsyntax.Attribute {
