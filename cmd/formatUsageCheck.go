@@ -2,40 +2,41 @@ package cmd
 
 import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-func checkForFormatUsage(files []string) ([]string, error) {
-	var affectedFiles []string
+type formatUsages map[string][]int
+
+func checkForFormatUsage(files []string) (formatUsages, error) {
+	affectedFiles := make(map[string][]int)
 	for _, f := range files {
-		affected, err := checkForFormatUsageInFile(f)
+		affectedLines, err := checkForFormatUsageInFile(f)
 		if err != nil {
 			return nil, err
 		}
 
-		if affected {
-			affectedFiles = append(affectedFiles, f)
+		if len(affectedLines) > 0 {
+			affectedFiles[f] = affectedLines
 		}
 	}
 	return affectedFiles, nil
 }
 
-func checkForFormatUsageInFile(file string) (bool, error) {
-	hclFile, err := readHclFileLegacy(file)
+func checkForFormatUsageInFile(file string) ([]int, error) {
+	tokens, err := readHclTokens(file)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	tokens := hclFile.BuildTokens(nil)
+	var affectedLines []int
 	for _, token := range tokens {
 		if isFormatToken(token) {
-			return true, nil
+			affectedLines = append(affectedLines, token.Range.Start.Line)
 		}
 	}
 
-	return false, nil
+	return affectedLines, nil
 }
 
-func isFormatToken(token *hclwrite.Token) bool {
-	return token.Type == hclsyntax.TokenIdent && isTokenTextLegacy(token, "format")
+func isFormatToken(token hclsyntax.Token) bool {
+	return token.Type == hclsyntax.TokenIdent && isTokenText(token, "format")
 }

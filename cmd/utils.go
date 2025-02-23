@@ -210,3 +210,17 @@ func equals(a expression, b expression) bool {
 
 	return valA.RawEquals(valB)
 }
+
+func readHclTokens(filename string) (hclsyntax.Tokens, error) {
+	input, _ := os.ReadFile(filename)
+	tokens, diags := hclsyntax.LexConfig(input, filename, hcl.InitialPos)
+	if diags.HasErrors() {
+		return nil, errors.New("failed to parse TF file: " + diags.Error())
+	}
+
+	return tokens, nil
+}
+
+func isTokenText(token hclsyntax.Token, text string) bool {
+	return string(token.Bytes) == text
+}
