@@ -57,16 +57,20 @@ func printReport(report unneededAttrAssigs) {
 		return
 	}
 
-	for mod, unneededVars := range report {
-		if len(unneededVars) == 0 {
+	for mod, unneededAssigns := range report {
+		if len(unneededAssigns) == 0 {
 			fmt.Printf("\nNo unneeded module assignments were found for module '%v'\n", mod.name())
 			continue
 		}
 
 		fmt.Printf("\nThe following module assignments are unneeded for module '%v':\n", mod.name())
 
-		for _, v := range unneededVars {
-			fmt.Printf("\t%v\n", v)
-		}
+		for _, assign := range unneededAssigns {
+			fmt.Printf("\t%v", assign.name())
+			if verbose {
+				fmt.Printf(" (%v)", assign.location())
+			}
+			fmt.Println()
+	}
 	}
 }
