@@ -99,11 +99,19 @@ func (v variableDefinition) name() string {
 }
 
 func (mod module) location() string {
-	return fmt.Sprintf("%v:%v", mod.bl.Range().Filename, mod.bl.Range().Start.Line)
+	return location(mod.bl)
+}
+
+func (v variableDefinition) location() string {
+	return location(v.bl)
 }
 
 func blockName(bl *hclsyntax.Block) string {
 	return bl.Labels[0]
+}
+
+func location(bl *hclsyntax.Block) string {
+	return fmt.Sprintf("%v:%v", bl.Range().Filename, bl.Range().Start.Line)
 }
 
 func readVariables(filename string) ([]variableDefinition, error) {
