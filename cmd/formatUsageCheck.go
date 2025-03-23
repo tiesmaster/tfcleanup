@@ -1,42 +1,56 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
 
-type formatUsages map[string][]int
+type formatUsages map[string][]formatInvocation
+
+type formatInvocation struct {
+	token hclsyntax.Token
+}
 
 func checkForFormatUsage(files []string) (formatUsages, error) {
-	affectedFiles := make(map[string][]int)
+	result := make(map[string][]formatInvocation)
 	for _, f := range files {
-		affectedLines, err := checkForFormatUsageInFile(f)
+		violations, err := checkForFormatUsageInFile(f)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(affectedLines) > 0 {
-			affectedFiles[f] = affectedLines
+		if len(violations) > 0 {
+			result[f] = violations
 		}
 	}
-	return affectedFiles, nil
+	return result, nil
 }
 
-func checkForFormatUsageInFile(file string) ([]int, error) {
+func checkForFormatUsageInFile(file string) ([]formatInvocation, error) {
 	tokens, err := readHclTokens(file)
 	if err != nil {
 		return nil, err
 	}
 
-	var affectedLines []int
+	var violations []formatInvocation
 	for _, token := range tokens {
 		if isFormatToken(token) {
-			affectedLines = append(affectedLines, token.Range.Start.Line)
+			violations = append(violations, formatInvocation{token}) // token.Range.Start.Line
 		}
 	}
 
-	return affectedLines, nil
+	return violations, nil
 }
 
 func isFormatToken(token hclsyntax.Token) bool {
 	return token.Type == hclsyntax.TokenIdent && isTokenText(token, "format")
+}
+
+func (invoke formatInvocation) string() string {
+	return string(invoke.token.Bytes)
+}
+
+func (invoke formatInvocation) location() string {
+	return fmt.Sprintf("%v:%d", invoke.token.Range.Filename, invoke.token.Range.Start.Line)
 }
