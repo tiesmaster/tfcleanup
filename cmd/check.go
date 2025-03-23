@@ -27,13 +27,10 @@ func runCheckCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// checks for attribute assignments with default values of variable from their module
-	report, err := checkForUnneededAttributeAssignments(tfFiles)
+	err = checkUnneededAttributeAssignments(tfFiles)
 	if err != nil {
 		return err
 	}
-
-	printReport(report)
 
 	// check for format() usage
 	filesWithFormatUsage, err := checkForFormatUsage(tfFiles)
@@ -51,26 +48,36 @@ func runCheckCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func printReport(report unneededAttrAssigs) {
+// checks for attribute assignments with default values of variable from their module
+func checkUnneededAttributeAssignments(tfFiles []string) error {
+	report, err := checkForUnneededAttributeAssignments(tfFiles)
+	if err != nil {
+		return err
+	}
+
 	if len(report) == 0 {
 		fmt.Println("No unneeded module assignments were found")
-		return
+		return nil
 	}
+
+	fmt.Println("== RESULTS FOR THE UNNEEDED MODULE ASSIGNMENTS ==")
 
 	for mod, unneededAssigns := range report {
 		if len(unneededAssigns) == 0 {
-			fmt.Printf("\nNo unneeded module assignments were found for module '%v'\n", mod.name())
+			fmt.Printf("\n\tNo unneeded module assignments were found for module '%v'\n", mod.name())
 			continue
 		}
 
-		fmt.Printf("\nThe following module assignments are unneeded for module '%v':\n", mod.name())
+		fmt.Printf("\n\tThe following module assignments are unneeded for module '%v':\n", mod.name())
 
 		for _, assign := range unneededAssigns {
-			fmt.Printf("\t%v", assign.name())
+			fmt.Printf("\t\t%v", assign.name())
 			if verbose {
 				fmt.Printf(" (%v)", assign.location())
 			}
 			fmt.Println()
+		}
 	}
-	}
+
+	return nil
 }
