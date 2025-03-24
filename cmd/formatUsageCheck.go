@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
 type formatUsages map[string][]formatInvocation
@@ -15,6 +16,8 @@ type formatInvocation struct {
 	expr   hcl.Expression
 	tokens []hclsyntax.Token
 }
+
+// CHECK
 
 func checkForFormatUsage(files []string) (formatUsages, error) {
 	result := make(map[string][]formatInvocation)
@@ -97,4 +100,44 @@ func (invoke formatInvocation) string() string {
 func (invoke formatInvocation) location() string {
 	r := invoke.expr.Range()
 	return fmt.Sprintf("%v:L%d:%d-%d", r.Filename, r.Start.Line, r.Start.Column, r.End.Column)
+}
+
+// FIX
+
+func convertFormatUsageToInterpolation(report formatUsages) error {
+	for filename, formatInvocations := range report {
+		if len(formatInvocations) == 0 {
+			continue
+		}
+		err := convertFormatUsageToInterpolationForFile(filename, formatInvocations)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func convertFormatUsageToInterpolationForFile(filename string, formatInvocations []formatInvocation) error {
+	return patchFile(filename, func(hclFile *hclwrite.File) (*hclwrite.File, error) {
+		// moduleBlock := getModuleBlockForWrite(hclFile, mod)
+		// for _, assign := range unneededAssigns {
+		// 	moduleBlock.Body().RemoveAttribute(assign.name())
+		// }
+
+		// TODO: loop over every formatInvocation, and convert formatUsageToInterpolation
+
+		// fi := formatInvocations[0]
+
+		// bl, attr := getAttributeForWrite(fi.expr)
+
+		// bl.Body().SetAttributeRaw(attr)
+
+
+
+		return hclFile, nil
+	})
+}
+
+func getAttributeForWrite(expression hcl.Expression) (hclwrite.Block, hclwrite.Attribute) {
+	panic("unimplemented")
 }

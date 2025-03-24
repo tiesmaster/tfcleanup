@@ -25,6 +25,18 @@ func runFixCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if err = performUnneededAttrFix(tfFiles); err != nil {
+		return err
+	}
+
+	if err = performFormatUsageFix(tfFiles); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func performUnneededAttrFix(tfFiles []string) error {
 	report, err := checkForUnneededAttributeAssignments(tfFiles)
 	if err != nil {
 		return err
@@ -34,6 +46,18 @@ func runFixCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
+func performFormatUsageFix(tfFiles []string) error {
+	report, err := checkForFormatUsage(tfFiles)
+	if err != nil {
+		return err
+	}
+
+	err = convertFormatUsageToInterpolation(report)
+	if err != nil {
+		return err
+	}
 	return nil
 }
