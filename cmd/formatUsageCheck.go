@@ -78,7 +78,7 @@ func getAllTokensForExpression(tokens []hclsyntax.Token, expr hcl.Expression) []
 		}
 
 		if t.Range.End == expr.Range().End {
-			return tokens[start:i+1]
+			return tokens[start : i+1]
 		}
 	}
 
@@ -119,25 +119,34 @@ func convertFormatUsageToInterpolation(report formatUsages) error {
 
 func convertFormatUsageToInterpolationForFile(filename string, formatInvocations []formatInvocation) error {
 	return patchFile(filename, func(hclFile *hclwrite.File) (*hclwrite.File, error) {
-		// moduleBlock := getModuleBlockForWrite(hclFile, mod)
-		// for _, assign := range unneededAssigns {
-		// 	moduleBlock.Body().RemoveAttribute(assign.name())
-		// }
-
-		// TODO: loop over every formatInvocation, and convert formatUsageToInterpolation
-
-		// fi := formatInvocations[0]
-
-		// bl, attr := getAttributeForWrite(fi.expr)
-
-		// bl.Body().SetAttributeRaw(attr)
-
-
-
+		for _, fi := range formatInvocations {
+			bl, attrName := getAttributeForWrite(hclFile, fi.expr)
+			bl.Body().SetAttributeRaw(attrName, convertFormatToInterpolation(fi.tokens))
+		}
 		return hclFile, nil
 	})
 }
 
-func getAttributeForWrite(expression hcl.Expression) (hclwrite.Block, hclwrite.Attribute) {
+func getAttributeForWrite(hclFile *hclwrite.File, expr hcl.Expression) (hclwrite.Block, string) {
 	panic("unimplemented")
+}
+
+func convertFormatToInterpolation(tokens []hclsyntax.Token) hclwrite.Tokens {
+	var resultTokens []*hclwrite.Token
+	for _, t := range tokens {
+		if t.Type == hclsyntax.TokenIdent && string(t.Bytes) == "format" {
+			// TODO: do stuff
+		} else {
+			token := toHclwriteToken(t)
+			resultTokens = append(resultTokens, &token)
+		}
+	}
+	return resultTokens
+}
+
+func toHclwriteToken(token hclsyntax.Token) hclwrite.Token {
+	return hclwrite.Token{
+		Type:  token.Type,
+		Bytes: token.Bytes,
+	}
 }
