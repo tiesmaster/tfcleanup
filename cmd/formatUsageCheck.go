@@ -133,15 +133,65 @@ func getAttributeForWrite(hclFile *hclwrite.File, expr hcl.Expression) (hclwrite
 
 func convertFormatToInterpolation(tokens []hclsyntax.Token) hclwrite.Tokens {
 	var resultTokens []*hclwrite.Token
-	for _, t := range tokens {
+	for i := 0; i < len(tokens); i++ {
+		t := tokens[i]
+		fmt.Printf("%s: %s\n", t.Type, string(t.Bytes))
 		if t.Type == hclsyntax.TokenIdent && string(t.Bytes) == "format" {
-			// TODO: do stuff
+			newTokens, consumedTokens := parseFormatAndReturnInterpolationTokens(tokens[i:])
+			resultTokens = append(resultTokens, newTokens...)
+			i += consumedTokens - 1 // account for the next loop increase
 		} else {
 			token := toHclwriteToken(t)
 			resultTokens = append(resultTokens, &token)
 		}
 	}
 	return resultTokens
+}
+
+func parseFormatAndReturnInterpolationTokens(tokens []hclsyntax.Token) ([]*hclwrite.Token, int) {
+	i := 0
+
+	// eat format token
+	i++
+
+	// eat open bracket token
+	i++
+
+	var newTokens []*hclwrite.Token
+	var token hclwrite.Token
+
+	// consume opening quote token
+	token = toHclwriteToken(tokens[i])
+	newTokens = append(newTokens, &token)
+	i++;
+
+	// consume quoted literal
+	token = toHclwriteToken(tokens[i])
+	newTokens = append(newTokens, &token)
+	i++;
+
+	// consume closing quote token
+	token = toHclwriteToken(tokens[i])
+	newTokens = append(newTokens, &token)
+	i++;
+
+	// eat close bracket token
+	i++
+
+	return newTokens, i
+
+	///
+
+	// take the main format string
+	t := tokens[i]
+	fmt.Println(t)
+
+	// get all args
+	for ; tokens[i].Type != hclsyntax.TokenOParen; i++ {
+
+	}
+
+	return nil, 0
 }
 
 func toHclwriteToken(token hclsyntax.Token) hclwrite.Token {

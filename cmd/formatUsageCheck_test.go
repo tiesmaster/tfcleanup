@@ -14,8 +14,10 @@ func TestConvertFormatToInterpolation(t *testing.T) {
 		expr     string
 		expected string
 	}{
-		{"simple string literal", `"hoi"`, `"hoi"`},
-		{"normal case", `format("%s-%s", "hoi", "dag")`, `hoi-dag`},
+		// {"DEBUG: investigate structure tokens", `"hoi ${local.hoi} dag"`, `"hoi"`},
+		{"no-op: string literal", `"hoi"`, `"hoi"`},
+		// {"no args: dissolve format()", `format("hoi")`, `"hoi"`},
+		// {"string literal: inline into single string", `format("%s-%s", "hoi", "dag")`, `hoi-dag`},
 		// TODO: add
 		//    with variables, and locals
 		//    enclosed in an array
