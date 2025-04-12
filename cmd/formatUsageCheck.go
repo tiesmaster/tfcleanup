@@ -165,7 +165,7 @@ func parseFormatAndReturnInterpolationTokens(tokens []hclsyntax.Token) ([]*hclwr
 	i += tokensConsumed
 
 	// push opening quote token
-	resultTokens = append(resultTokens, quoteToken())
+	resultTokens = append(resultTokens, quoteToken()) // TODO: fix the type that we use here (is now closing quote, should be opening)
 	// parse the fmt string
 	resultTokens = append(resultTokens, parseFmtString(fmtString, fmtArgs)...)
 	// push closing quote token
@@ -220,26 +220,45 @@ func getFormatArgs(tokens []hclsyntax.Token) ([][]hclsyntax.Token, int) {
 }
 
 func parseFmtString(fmtString string, fmtArgs [][]hclsyntax.Token) []*hclwrite.Token {
-	var bytes []byte
+	var resultTokens []*hclwrite.Token
+	var stringFragment []byte
 
 	for i := 0; i < len(fmtString); i++ {
 		s := fmtString[i:min(i+2, len(fmtString))]
 		if s == "%s" {
 			arg := fmtArgs[0]
-			bytes = append(bytes, arg[1].Bytes...)
+			if arg[0].Type == hclsyntax.TokenOQuote {
+				// expression is string literal, so we can inline it
+				stringFragment = append(stringFragment, arg[1].Bytes...)
+			} else {
+				// otherwise we need to start a template interpretation
+				resultTokens = append(resultTokens, stringLiteralToken(stringFragment))
+				stringFragment = nil
+
+				resultTokens = append(resultTokens, openingTemplate())
+				resultTokens = append(resultTokens, toHclwriteTokens(arg)...)
+				resultTokens = append(resultTokens, closingTemplate())
+			}
 
 			fmtArgs = fmtArgs[1:] // consume the arg
 			i += 1                // consume the %s
 		} else {
-			bytes = append(bytes, fmtString[i])
+			stringFragment = append(stringFragment, fmtString[i])
 		}
 	}
 
-	return []*hclwrite.Token{
-		{
-			Type:  hclsyntax.TokenQuotedLit,
-			Bytes: bytes},
+	// append last string fragment
+	resultTokens = append(resultTokens, stringLiteralToken(stringFragment))
+
+	return resultTokens
+}
+
+func toHclwriteTokens(tokens []hclsyntax.Token) []*hclwrite.Token {
+	var resultTokens []*hclwrite.Token
+	for _, t := range tokens {
+		resultTokens = append(resultTokens, toHclwriteToken(t))
 	}
+	return resultTokens
 }
 
 func toHclwriteToken(token hclsyntax.Token) *hclwrite.Token {
@@ -253,4 +272,22 @@ func quoteToken() *hclwrite.Token {
 	return &hclwrite.Token{
 		Type:  hclsyntax.TokenOQuote,
 		Bytes: []byte(`"`)}
+}
+
+func stringLiteralToken(b []byte) *hclwrite.Token {
+	return &hclwrite.Token{
+		Type:  hclsyntax.TokenQuotedLit,
+		Bytes: b}
+}
+
+func openingTemplate() *hclwrite.Token {
+	return &hclwrite.Token{
+		Type:  hclsyntax.TokenTemplateInterp,
+		Bytes: []byte(`${`)}
+}
+
+func closingTemplate() *hclwrite.Token {
+	return &hclwrite.Token{
+		Type:  hclsyntax.TokenTemplateSeqEnd,
+		Bytes: []byte(`}`)}
 }
