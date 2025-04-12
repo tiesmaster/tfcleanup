@@ -5,8 +5,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 )
-
 
 func TestConvertFormatToInterpolation(t *testing.T) {
 	testCases := []struct {
@@ -43,4 +43,39 @@ func TestConvertFormatToInterpolation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetAttributeForWrite(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		hcl                   string
+		blockPos              hcl.Pos
+		expectedAttributeName string
+	}{
+		{
+			"single block",
+			`block {
+				hoi = "dag"
+			}`,
+			hcl.Pos{Line: 1, Column: 1},
+			"hoi"},
+	}
+	for _, tc := range testCases {
+
+		hclFile, _ := hclwrite.ParseConfig([]byte(tc.hcl), "dummy.tf", hcl.Pos{Line: 1, Column: 1})
+
+		expr := getExpression(tc.hcl, tc.blockPos, tc.expectedAttributeName)
+
+		_, resultAttrName := getAttributeForWrite(hclFile, expr)
+		if resultAttrName != tc.expectedAttributeName {
+			t.Errorf("getAttributeForWrite(%s) = _, %s; want %s", tc.hcl, resultAttrName, tc.expectedAttributeName)
+		}
+	}
+}
+
+func getExpression(hclText string, blockPos hcl.Pos, attrName string) hcl.Expression {
+	hclFile, _ := hclsyntax.ParseConfig([]byte(hclText), "dummy.tf", hcl.Pos{Line: 1, Column: 1})
+	bl := hclFile.BlocksAtPos(blockPos)
+	attributes, _ := bl[0].Body.JustAttributes()
+	return attributes[attrName].Expr
 }
