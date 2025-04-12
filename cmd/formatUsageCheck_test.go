@@ -18,16 +18,15 @@ func TestConvertFormatToInterpolation(t *testing.T) {
 		{"no args: dissolve format()", `format("hoi")`, `"hoi"`},
 		{"string literal: inline into single string", `format("%s-%s", "hoi", "dag")`, `"hoi-dag"`},
 		{"expr: wrap in template interpretation", `format("%s-%s", var.hoi, local.dag)`, `"${var.hoi}-${local.dag}"`},
+
+		{"array: single item", `["hoi"]`, `["hoi"]`},
+		{"array: multiple items item", `["hoi", "dag"]`, `["hoi","dag"]`},
+		{"array: with format call", `[format("hoi")]`, `["hoi"]`},
+		{"array: with many format calls", `[format("hoi"), format("%s-%s", var.hoi, local.dag)]`, `["hoi","${var.hoi}-${local.dag}"]`},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// expr, diags := hclsyntax.ParseExpression([]byte(tc.expr), "dummy.tf", hcl.Pos{Line: 1, Column: 1})
-			// if len(diags) > 0 {
-			// 	t.Errorf("EXPR: expression '%s' is not valid HCL: diagnostics: %v", tc.expr, diags)
-			// 	return
-			// }
-
 			tokens, diags := hclsyntax.LexConfig([]byte(tc.expr), "dummy.tf", hcl.Pos{Line: 1, Column: 1})
 			if len(diags) > 0 {
 				t.Errorf("TOKENS: expression '%s' is not valid HCL: diagnostics: %v", tc.expr, diags)

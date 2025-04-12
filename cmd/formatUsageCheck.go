@@ -135,7 +135,6 @@ func convertFormatToInterpolation(tokens []hclsyntax.Token) hclwrite.Tokens {
 	var resultTokens []*hclwrite.Token
 	for i := 0; i < len(tokens); i++ {
 		t := tokens[i]
-		fmt.Printf("%s: %s\n", t.Type, string(t.Bytes))
 		if t.Type == hclsyntax.TokenIdent && string(t.Bytes) == "format" {
 			newTokens, consumedTokens := parseFormatAndReturnInterpolationTokens(tokens[i:])
 			resultTokens = append(resultTokens, newTokens...)
@@ -198,16 +197,16 @@ func getFormatArgs(tokens []hclsyntax.Token) ([][]hclsyntax.Token, int) {
 	var resultTokens [][]hclsyntax.Token
 	var tokensConsumed int
 
-	// skip first comma
-	tokens = tokens[1:]
-	tokensConsumed++
-
 	start := 0
 	for i, t := range tokens {
 		tokensConsumed++
 
-		if t.Type == hclsyntax.TokenComma || t.Type == hclsyntax.TokenCParen {
+		if start != 0 && // skip the first comma
+			(t.Type == hclsyntax.TokenComma || t.Type == hclsyntax.TokenCParen) {
 			resultTokens = append(resultTokens, tokens[start:i])
+		}
+
+		if t.Type == hclsyntax.TokenComma {
 			start = i + 1 // set start to next token after the current comma
 		}
 
