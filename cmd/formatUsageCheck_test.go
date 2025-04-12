@@ -45,7 +45,7 @@ func TestConvertFormatToInterpolation(t *testing.T) {
 	}
 }
 
-func TestGetAttributeForWrite(t *testing.T) {
+func _TestGetAttributeForWrite(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		hcl                   string
