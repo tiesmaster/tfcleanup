@@ -16,7 +16,7 @@ func TestConvertFormatToInterpolation(t *testing.T) {
 	}{
 		{"no-op: string literal", `"hoi"`, `"hoi"`},
 		{"no args: dissolve format()", `format("hoi")`, `"hoi"`},
-		// {"string literal: inline into single string", `format("%s-%s", "hoi", "dag")`, `hoi-dag`},
+		{"string literal: inline into single string", `format("%s-%s", "hoi", "dag")`, `"hoi-dag"`},
 		// TODO: add
 		//    with variables, and locals
 		//    enclosed in an array

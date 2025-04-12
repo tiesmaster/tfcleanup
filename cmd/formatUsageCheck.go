@@ -148,6 +148,8 @@ func convertFormatToInterpolation(tokens []hclsyntax.Token) hclwrite.Tokens {
 }
 
 func parseFormatAndReturnInterpolationTokens(tokens []hclsyntax.Token) ([]*hclwrite.Token, int) {
+	var resultTokens []*hclwrite.Token
+
 	i := 0
 
 	// eat format token
@@ -156,24 +158,88 @@ func parseFormatAndReturnInterpolationTokens(tokens []hclsyntax.Token) ([]*hclwr
 	// eat open bracket token
 	i++
 
-	var newTokens []*hclwrite.Token
+	fmtString, tokensConsumed := getFormatString(tokens[i:])
+	i += tokensConsumed
+
+	fmtArgs, tokensConsumed := getFormatArgs(tokens[i:])
+	i += tokensConsumed
+
+	// push opening quote token
+	resultTokens = append(resultTokens, quoteToken())
+	// parse the fmt string
+	resultTokens = append(resultTokens, parseFmtString(fmtString, fmtArgs)...)
+	// push closing quote token
+	resultTokens = append(resultTokens, quoteToken())
+
+	return resultTokens, i
+}
+
+func getFormatString(tokens []hclsyntax.Token) (string, int) {
+	var bytes []byte
+	var tokensConsumed int
 
 	// consume opening quote token
-	newTokens = append(newTokens, toHclwriteToken(tokens[i]))
-	i++;
+	tokens = tokens[1:]
+	tokensConsumed++
 
-	// consume quoted literal
-	newTokens = append(newTokens, toHclwriteToken(tokens[i]))
-	i++;
+	for _, t := range tokens {
+		tokensConsumed++
+		if t.Type == hclsyntax.TokenCQuote {
+			break
+		} else {
+			bytes = append(bytes, t.Bytes...)
+		}
+	}
 
-	// consume closing quote token
-	newTokens = append(newTokens, toHclwriteToken(tokens[i]))
-	i++;
+	return string(bytes), tokensConsumed
+}
 
-	// eat close bracket token
-	i++
+func getFormatArgs(tokens []hclsyntax.Token) ([][]hclsyntax.Token, int) {
+	var resultTokens [][]hclsyntax.Token
+	var tokensConsumed int
 
-	return newTokens, i
+	// skip first comma
+	tokens = tokens[1:]
+	tokensConsumed++
+
+	start := 0
+	for i, t := range tokens {
+		tokensConsumed++
+
+		if t.Type == hclsyntax.TokenComma || t.Type == hclsyntax.TokenCParen {
+			resultTokens = append(resultTokens, tokens[start:i])
+			start = i + 1 // set start to next token after the current comma
+		}
+
+		if t.Type == hclsyntax.TokenCParen {
+			break
+		}
+	}
+
+	return resultTokens, tokensConsumed
+}
+
+func parseFmtString(fmtString string, fmtArgs [][]hclsyntax.Token) []*hclwrite.Token {
+	var bytes []byte
+
+	for i := 0; i < len(fmtString); i++ {
+		s := fmtString[i:min(i+2, len(fmtString))]
+		if s == "%s" {
+			arg := fmtArgs[0]
+			bytes = append(bytes, arg[1].Bytes...)
+
+			fmtArgs = fmtArgs[1:] // consume the arg
+			i += 1                // consume the %s
+		} else {
+			bytes = append(bytes, fmtString[i])
+		}
+	}
+
+	return []*hclwrite.Token{
+		{
+			Type:  hclsyntax.TokenQuotedLit,
+			Bytes: bytes},
+	}
 }
 
 func toHclwriteToken(token hclsyntax.Token) *hclwrite.Token {
@@ -181,4 +247,10 @@ func toHclwriteToken(token hclsyntax.Token) *hclwrite.Token {
 		Type:  token.Type,
 		Bytes: token.Bytes,
 	}
+}
+
+func quoteToken() *hclwrite.Token {
+	return &hclwrite.Token{
+		Type:  hclsyntax.TokenOQuote,
+		Bytes: []byte(`"`)}
 }
