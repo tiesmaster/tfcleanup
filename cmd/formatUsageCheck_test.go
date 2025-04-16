@@ -87,11 +87,15 @@ func TestGetAttributeForWrite(t *testing.T) {
 			expectedAttributeName: "hoi",
 		},
 		{
-			name: "single block",
-			hcl: `block {
+			name: "block without labels",
+			hcl: `block1 {
+				bloeb = "blaat"
+			}
+
+			block2 {
 				hoi = "dag"
 			}`,
-			address:               hclAddress{[]hclBlockId{{"block", nil}}, "hoi"},
+			address:               hclAddress{[]hclBlockId{{"block2", nil}}, "hoi"},
 			expectedAttributeName: "hoi",
 		},
 	}
