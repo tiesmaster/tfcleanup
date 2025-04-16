@@ -77,7 +77,7 @@ func TestGetAttributeForWrite(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		hcl                   string
-		blockPos              hcl.Pos
+		address               hclAddress
 		expectedAttributeName string
 	}{
 		{
@@ -85,25 +85,16 @@ func TestGetAttributeForWrite(t *testing.T) {
 			hcl: `block {
 				hoi = "dag"
 			}`,
-			blockPos:              hcl.Pos{Line: 1, Column: 1},
+			address:               hclAddress{[]hclBlockId{{"block", nil}}, "hoi"},
 			expectedAttributeName: "hoi"},
 	}
 	for _, tc := range testCases {
 
 		hclFile, _ := hclwrite.ParseConfig([]byte(tc.hcl), "dummy.tf", hcl.Pos{Line: 1, Column: 1})
 
-		expr := getExpression(tc.hcl, tc.blockPos, tc.expectedAttributeName)
-
-		_, resultAttrName := getAttributeForWrite(hclFile, expr)
+		_, resultAttrName := getAttributeForWrite(hclFile, tc.address)
 		if resultAttrName != tc.expectedAttributeName {
 			t.Errorf("getAttributeForWrite(%s) = _, %s; want %s", tc.hcl, resultAttrName, tc.expectedAttributeName)
 		}
 	}
-}
-
-func getExpression(hclText string, blockPos hcl.Pos, attrName string) hcl.Expression {
-	hclFile, _ := hclsyntax.ParseConfig([]byte(hclText), "dummy.tf", hcl.Pos{Line: 1, Column: 1})
-	bl := hclFile.BlocksAtPos(blockPos)
-	attributes, _ := bl[0].Body.JustAttributes()
-	return attributes[attrName].Expr
 }

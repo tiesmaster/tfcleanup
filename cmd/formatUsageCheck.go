@@ -12,9 +12,22 @@ import (
 
 type formatUsages map[string][]formatInvocation
 
+type hclBlockId struct {
+	typeName string
+	labels   []string
+}
+
+type hclAddress struct {
+	blocks   []hclBlockId
+	attrName string
+}
+
 type formatInvocation struct {
-	expr   hcl.Expression
-	tokens []hclsyntax.Token
+	tokens     []hclsyntax.Token
+	hclAddress hclAddress
+
+	// TODO: remove expr, when fully switched over to hclAddress
+	expr hcl.Expression
 }
 
 // CHECK
@@ -55,7 +68,7 @@ func checkForFormatUsageInFile(file string) ([]formatInvocation, error) {
 	return result, nil
 }
 
-func convertTokensToExpressions(filename string, tokens []hclsyntax.Token, violationTokens []hclsyntax.Token) ([]formatInvocation, error) {
+func convertTokensToExpressions(filename string, fileTokens []hclsyntax.Token, violationTokens []hclsyntax.Token) ([]formatInvocation, error) {
 	hclFile, diags := hclparse.NewParser().ParseHCLFile(filename)
 	if diags.HasErrors() {
 		return nil, errors.New("failed to parse TF file: " + diags.Error())
@@ -65,24 +78,40 @@ func convertTokensToExpressions(filename string, tokens []hclsyntax.Token, viola
 	for _, t := range violationTokens {
 		expr := hclFile.OutermostExprAtPos(t.Range.Start)
 
-		result = append(result, formatInvocation{expr, getAllTokensForExpression(tokens, expr)})
+		result = append(result, formatInvocation{
+			getAllTokensForExpression(fileTokens, expr),
+			getHclAddress(hclFile, expr),
+			expr,
+		})
 	}
 	return result, nil
 }
 
-func getAllTokensForExpression(tokens []hclsyntax.Token, expr hcl.Expression) []hclsyntax.Token {
+func getAllTokensForExpression(fileTokens []hclsyntax.Token, expr hcl.Expression) []hclsyntax.Token {
 	start := 0
-	for i, t := range tokens {
+	for i, t := range fileTokens {
 		if t.Range.Start == expr.Range().Start {
 			start = i
 		}
 
 		if t.Range.End == expr.Range().End {
-			return tokens[start : i+1]
+			return fileTokens[start : i+1]
 		}
 	}
 
 	panic("cannot reach")
+}
+
+func getHclAddress(hclFile *hcl.File, expr hcl.Expression) hclAddress {
+	var blIds []hclBlockId
+
+	blocks := hclFile.BlocksAtPos(expr.Range().Start)
+	for _, bl := range blocks {
+		blIds = append(blIds, hclBlockId{bl.Type, bl.Labels})
+	}
+	attr := hclFile.AttributeAtPos(expr.Range().Start)
+
+	return hclAddress{blIds, attr.Name}
 }
 
 func isFormatToken(token hclsyntax.Token) bool {
@@ -120,15 +149,21 @@ func convertFormatUsageToInterpolation(report formatUsages) error {
 func convertFormatUsageToInterpolationForFile(filename string, formatInvocations []formatInvocation) error {
 	return patchFile(filename, func(hclFile *hclwrite.File) (*hclwrite.File, error) {
 		for _, fi := range formatInvocations {
-			bl, attrName := getAttributeForWrite(hclFile, fi.expr)
+			bl, attrName := getAttributeForWrite(hclFile, fi.hclAddress)
 			bl.Body().SetAttributeRaw(attrName, convertFormatToInterpolation(fi.tokens))
 		}
 		return hclFile, nil
 	})
 }
 
-func getAttributeForWrite(hclFile *hclwrite.File, expr hcl.Expression) (hclwrite.Block, string) {
-	panic("unimplemented")
+func getAttributeForWrite(hclFile *hclwrite.File, address hclAddress) (*hclwrite.Block, string) {
+	blAddr := address.blocks[0]
+	for _, bl := range hclFile.Body().Blocks() {
+		if bl.Type() == blAddr.typeName {
+			return bl, address.attrName
+		}
+	}
+	panic("cannot reach")
 }
 
 func convertFormatToInterpolation(tokens []hclsyntax.Token) hclwrite.Tokens {
