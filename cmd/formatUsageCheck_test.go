@@ -73,7 +73,7 @@ func TestConvertFormatToInterpolation(t *testing.T) {
 	}
 }
 
-func _TestGetAttributeForWrite(t *testing.T) {
+func TestGetAttributeForWrite(t *testing.T) {
 	testCases := []struct {
 		name                  string
 		hcl                   string
@@ -81,12 +81,12 @@ func _TestGetAttributeForWrite(t *testing.T) {
 		expectedAttributeName string
 	}{
 		{
-			"single block",
-			`block {
+			name: "single block",
+			hcl: `block {
 				hoi = "dag"
 			}`,
-			hcl.Pos{Line: 1, Column: 1},
-			"hoi"},
+			blockPos:              hcl.Pos{Line: 1, Column: 1},
+			expectedAttributeName: "hoi"},
 	}
 	for _, tc := range testCases {
 
