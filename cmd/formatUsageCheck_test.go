@@ -14,15 +14,46 @@ func TestConvertFormatToInterpolation(t *testing.T) {
 		expr     string
 		expected string
 	}{
-		{"no-op: string literal", `"hoi"`, `"hoi"`},
-		{"no args: dissolve format()", `format("hoi")`, `"hoi"`},
-		{"string literal: inline into single string", `format("%s-%s", "hoi", "dag")`, `"hoi-dag"`},
-		{"expr: wrap in template interpretation", `format("%s-%s", var.hoi, local.dag)`, `"${var.hoi}-${local.dag}"`},
-
-		{"array: single item", `["hoi"]`, `["hoi"]`},
-		{"array: multiple items item", `["hoi", "dag"]`, `["hoi","dag"]`},
-		{"array: with format call", `[format("hoi")]`, `["hoi"]`},
-		{"array: with many format calls", `[format("hoi"), format("%s-%s", var.hoi, local.dag)]`, `["hoi","${var.hoi}-${local.dag}"]`},
+		{
+			name:     "no-op: string literal",
+			expr:     `"hoi"`,
+			expected: `"hoi"`,
+		},
+		{
+			name:     "no args: dissolve format()",
+			expr:     `format("hoi")`,
+			expected: `"hoi"`,
+		},
+		{
+			name:     "string literal: inline into single string",
+			expr:     `format("%s-%s", "hoi", "dag")`,
+			expected: `"hoi-dag"`,
+		},
+		{
+			name:     "expr: wrap in template interpretation",
+			expr:     `format("%s-%s", var.hoi, local.dag)`,
+			expected: `"${var.hoi}-${local.dag}"`,
+		},
+		{
+			name:     "array: single item",
+			expr:     `["hoi"]`,
+			expected: `["hoi"]`,
+		},
+		{
+			name:     "array: multiple items item",
+			expr:     `["hoi", "dag"]`,
+			expected: `["hoi","dag"]`,
+		},
+		{
+			name:     "array: with format call",
+			expr:     `[format("hoi")]`,
+			expected: `["hoi"]`,
+		},
+		{
+			name:     "array: with many format calls",
+			expr:     `[format("hoi"), format("%s-%s", var.hoi, local.dag)]`,
+			expected: `["hoi","${var.hoi}-${local.dag}"]`,
+		},
 	}
 
 	for _, tc := range testCases {
