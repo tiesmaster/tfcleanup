@@ -81,12 +81,19 @@ func TestGetAttributeForWrite(t *testing.T) {
 		expectedAttributeName string
 	}{
 		{
+			name:                  "single attribute",
+			hcl:                   `hoi = "dag"`,
+			address:               hclAddress{[]hclBlockId{}, "hoi"},
+			expectedAttributeName: "hoi",
+		},
+		{
 			name: "single block",
 			hcl: `block {
 				hoi = "dag"
 			}`,
 			address:               hclAddress{[]hclBlockId{{"block", nil}}, "hoi"},
-			expectedAttributeName: "hoi"},
+			expectedAttributeName: "hoi",
+		},
 	}
 	for _, tc := range testCases {
 

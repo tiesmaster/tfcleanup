@@ -157,13 +157,18 @@ func convertFormatUsageToInterpolationForFile(filename string, formatInvocations
 }
 
 func getAttributeForWrite(hclFile *hclwrite.File, address hclAddress) (*hclwrite.Body, string) {
-	blAddr := address.blocks[0]
-	for _, bl := range hclFile.Body().Blocks() {
-		if bl.Type() == blAddr.typeName {
-			return bl.Body(), address.attrName
+	body := hclFile.Body()
+
+	for _, blAddr := range address.blocks {
+		for _, bl := range hclFile.Body().Blocks() {
+			if bl.Type() == blAddr.typeName {
+				body = bl.Body()
+				continue
+			}
 		}
 	}
-	panic("cannot reach")
+
+	return body, address.attrName
 }
 
 func convertFormatToInterpolation(tokens []hclsyntax.Token) hclwrite.Tokens {
