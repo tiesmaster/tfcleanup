@@ -149,18 +149,18 @@ func convertFormatUsageToInterpolation(report formatUsages) error {
 func convertFormatUsageToInterpolationForFile(filename string, formatInvocations []formatInvocation) error {
 	return patchFile(filename, func(hclFile *hclwrite.File) (*hclwrite.File, error) {
 		for _, fi := range formatInvocations {
-			bl, attrName := getAttributeForWrite(hclFile, fi.hclAddress)
-			bl.Body().SetAttributeRaw(attrName, convertFormatToInterpolation(fi.tokens))
+			body, attrName := getAttributeForWrite(hclFile, fi.hclAddress)
+			body.SetAttributeRaw(attrName, convertFormatToInterpolation(fi.tokens))
 		}
 		return hclFile, nil
 	})
 }
 
-func getAttributeForWrite(hclFile *hclwrite.File, address hclAddress) (*hclwrite.Block, string) {
+func getAttributeForWrite(hclFile *hclwrite.File, address hclAddress) (*hclwrite.Body, string) {
 	blAddr := address.blocks[0]
 	for _, bl := range hclFile.Body().Blocks() {
 		if bl.Type() == blAddr.typeName {
-			return bl, address.attrName
+			return bl.Body(), address.attrName
 		}
 	}
 	panic("cannot reach")
