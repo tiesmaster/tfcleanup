@@ -92,9 +92,9 @@ func TestGetAttributeForWrite(t *testing.T) {
 
 		hclFile, _ := hclwrite.ParseConfig([]byte(tc.hcl), "dummy.tf", hcl.Pos{Line: 1, Column: 1})
 
-		_, resultAttrName := getAttributeForWrite(hclFile, tc.address)
-		if resultAttrName != tc.expectedAttributeName {
-			t.Errorf("getAttributeForWrite(%s) = _, %s; want %s", tc.hcl, resultAttrName, tc.expectedAttributeName)
+		body, resultAttrName := getAttributeForWrite(hclFile, tc.address)
+		if resultAttrName != tc.expectedAttributeName || body == nil || body.GetAttribute(resultAttrName) == nil {
+			t.Errorf("getAttributeForWrite(%s) = %v, %s; want %s", tc.hcl, body, resultAttrName, tc.expectedAttributeName)
 		}
 	}
 }
