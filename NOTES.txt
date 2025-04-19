@@ -1,0 +1,49 @@
+Some breaksdowns of syntax trees
+
+"hoi"
+    TokenOQuote: "
+        TokenQuotedLit: hoi
+    TokenCQuote: "
+    TokenEOF:
+
+format("hoi")
+    TokenIdent: format
+        TokenOParen: (
+            TokenOQuote: "
+                TokenQuotedLit: hoi
+            TokenCQuote: "
+        TokenCParen: )
+    TokenEOF:
+
+format("%s-%s", "hoi", "dag")
+    TokenIdent: format
+        TokenOParen: (
+            TokenOQuote: "
+                TokenQuotedLit: %
+                TokenQuotedLit: s-
+                TokenQuotedLit: %
+                TokenQuotedLit: s
+            TokenCQuote: "
+        TokenComma: ,
+            TokenOQuote: "
+                TokenQuotedLit: hoi
+            TokenCQuote: "
+        TokenComma: ,
+            TokenOQuote: "
+                TokenQuotedLit: dag
+            TokenCQuote: "
+        TokenCParen: )
+    TokenEOF:
+
+"hoi ${local.hoi} dag"
+
+    TokenOQuote: "
+        TokenQuotedLit: hoi
+            TokenTemplateInterp: ${
+                TokenIdent: local
+                TokenDot: .
+                TokenIdent: hoi
+            TokenTemplateSeqEnd: }
+        TokenQuotedLit:  dag
+    TokenCQuote: "
+    TokenEOF:
