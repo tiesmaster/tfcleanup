@@ -161,14 +161,30 @@ func getAttributeForWrite(hclFile *hclwrite.File, address hclAddress) (*hclwrite
 
 	for _, blAddr := range address.blocks {
 		for _, bl := range hclFile.Body().Blocks() {
-			if bl.Type() == blAddr.typeName {
+			if isAddr(blAddr, bl) {
 				body = bl.Body()
-				continue
+				break
 			}
 		}
 	}
 
 	return body, address.attrName
+}
+
+func isAddr(blAddr hclBlockId, bl *hclwrite.Block) bool {
+	return blAddr.typeName == bl.Type() && equalsLabels(blAddr.labels, bl.Labels())
+}
+
+func equalsLabels(l1 []string, l2 []string) bool {
+	if len(l1) != len(l2) {
+		return false
+	}
+	for i, l := range l1 {
+		if l != l2[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func convertFormatToInterpolation(tokens []hclsyntax.Token) hclwrite.Tokens {

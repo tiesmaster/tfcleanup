@@ -98,14 +98,84 @@ func TestGetAttributeForWrite(t *testing.T) {
 			address:               hclAddress{[]hclBlockId{{"block2", nil}}, "hoi"},
 			expectedAttributeName: "hoi",
 		},
+		{
+			name: "block with labels",
+			hcl: `block "id1" "id2" {
+				bloeb = "blaat"
+			}
+
+			block "id3" "id4" {
+				hoi = "dag"
+			}`,
+			address:               hclAddress{[]hclBlockId{{"block", []string{"id3", "id4"}}}, "hoi"},
+			expectedAttributeName: "hoi",
+		},
 	}
 	for _, tc := range testCases {
-
 		hclFile, _ := hclwrite.ParseConfig([]byte(tc.hcl), "dummy.tf", hcl.Pos{Line: 1, Column: 1})
 
 		body, resultAttrName := getAttributeForWrite(hclFile, tc.address)
 		if resultAttrName != tc.expectedAttributeName || body == nil || body.GetAttribute(resultAttrName) == nil {
 			t.Errorf("getAttributeForWrite(%s) = %v, %s; want %s", tc.hcl, body, resultAttrName, tc.expectedAttributeName)
+		}
+	}
+}
+
+func TestEqualsLabels(t *testing.T) {
+	testCases := []struct {
+		name           string
+		l1             []string
+		l2             []string
+		expectedEquals bool
+	}{
+		{
+			name: "empty labels",
+			l1: []string{},
+			l2: []string{},
+			expectedEquals: true,
+		},
+		{
+			name: "single labels, same",
+			l1: []string{"hoi"},
+			l2: []string{"hoi"},
+			expectedEquals: true,
+		},
+		{
+			name: "multiple labels, same",
+			l1: []string{"hoi", "dag", "bloeb"},
+			l2: []string{"hoi", "dag", "bloeb"},
+			expectedEquals: true,
+		},
+		{
+			name: "single labels, different",
+			l1: []string{"hoi"},
+			l2: []string{"dag"},
+			expectedEquals: false,
+		},
+		{
+			name: "labels vs no labels",
+			l1: []string{"hoi"},
+			l2: []string{},
+			expectedEquals: false,
+		},
+		{
+			name: "labels vs no labels",
+			l1: []string{},
+			l2: []string{"hoi"},
+			expectedEquals: false,
+		},
+		{
+			name: "multiple labels, first different",
+			l1: []string{"hoi", "dag", "bloeb"},
+			l2: []string{"hello", "dag", "bloeb"},
+			expectedEquals: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		result := equalsLabels(tc.l1, tc.l2)
+		if result != tc.expectedEquals {
+			t.Errorf("equalsLabels(%s, %s) == %t; want %t", tc.l1, tc.l2, result, tc.expectedEquals)
 		}
 	}
 }
